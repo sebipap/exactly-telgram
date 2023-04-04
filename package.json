@@ -1,0 +1,23 @@
+{
+  "name": "exactly-telegram",
+  "version": "1.0.0",
+  "description": "use exactly in telegram",
+  "main": "index.js",
+  "scripts": {
+    "start": "vercel dev",
+    "lint": "tsc --noEmit && eslint . --ext \"ts,tsx\"",
+    "lint:fix": "npm run lint -- --fix"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^18.15.11",
+    "@typescript-eslint/eslint-plugin": "^5.57.0",
+    "@vercel/node": "^2.10.2",
+    "eslint": "^8.37.0",
+    "prettier": "^2.8.7",
+    "typescript": "^5.0.3"
+  },
+  "dependencies": {}
+}
