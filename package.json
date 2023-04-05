@@ -4,7 +4,8 @@
   "description": "use exactly in telegram",
   "main": "index.js",
   "scripts": {
-    "start": "vercel dev",
+    "start": "ts-node src/bot.ts",
+    "dev": "ts-node-dev src/bot.ts",
     "lint": "tsc --noEmit && eslint . --ext \"ts,tsx\"",
     "lint:fix": "npm run lint -- --fix"
   },
@@ -19,5 +20,10 @@
     "prettier": "^2.8.7",
     "typescript": "^5.0.3"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@walletconnect/web3wallet": "^1.5.1",
+    "dotenv": "^16.0.3",
+    "lokijs": "^1.5.12",
+    "telegraf": "^4.12.2"
+  }
 }
