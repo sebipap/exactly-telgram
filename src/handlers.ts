@@ -9,6 +9,7 @@ import {
   getActionName,
   getAddressFromWalletSession,
   getButtons,
+  getDepositBalances,
   getTokenBalances,
   parseAmount,
 } from './utils'
@@ -20,7 +21,7 @@ export async function sendMenu(ctx: ChatContext) {
     ctx.reply(
       `✅ ${address.slice(0, 4)}...${address.slice(-4)}`,
       getButtons([
-        { text: 'Send', callback_data: 'send' },
+        // { text: 'Send', callback_data: 'send' },
         {
           text: 'Get balance',
           callback_data: 'get_balance',
@@ -197,8 +198,6 @@ export async function handleSend(ctx: ChatContext) {
 }
 
 export async function handleGetBalance(ctx: ChatContext) {
-  await ctx.reply('get_balance')
-
   const session = ctx.session.walletSession
   const signClient = ctx.session.signClient
 
@@ -221,7 +220,7 @@ export async function handleGetBalance(ctx: ChatContext) {
   const { chainId } = ctx.session
 
   try {
-    const balances = await getTokenBalances(addresses[0], chainId, uri)
+    const balances = await getTokenBalances(addresses[0], chainId)
 
     for (const { token, balance } of balances) {
       await ctx.reply(`${token}: ${balance}`)
@@ -230,6 +229,8 @@ export async function handleGetBalance(ctx: ChatContext) {
     ctx.reply('Error getting balance')
     console.error(mierror)
   }
+
+  sendMenu(ctx)
 }
 
 export async function handleStartDepositAction(ctx: ChatContext) {
@@ -322,7 +323,16 @@ export async function handleIncomingMessage(ctx: ChatContext) {
 export async function handleSeeDepositsAction(ctx: ChatContext) {
   const address = getAddressFromWalletSession(ctx.session.walletSession)
 
-  console.log(address)
+  try {
+    const balances = await getDepositBalances(address, ctx.session.chainId)
+
+    for (const { token, balance } of balances) {
+      ctx.reply(`${token}: ${balance}`)
+    }
+  } catch (error) {
+    console.error(error)
+    ctx.reply('Error getting balance')
+  }
 }
 
 export async function handleSetDepositDuration(ctx: ChatContext) {
@@ -337,7 +347,7 @@ export async function handleSetDepositDuration(ctx: ChatContext) {
 
   const rate = 0.0286 /// TODO: change
 
-  const interest = (amount * rate).toFixed(2)
+  const interest = amount * rate
 
   const maturityDate =
     duration !== 'flexible'
@@ -348,7 +358,9 @@ export async function handleSetDepositDuration(ctx: ChatContext) {
         )
       : ''
 
-  ctx.reply(`Your total earnings: ${token} ${amount + interest}`)
+  ctx.session.depositDuration = duration as DepositDuration
+
+  ctx.reply(`Your total earnings: ${token} ${(amount + interest).toFixed(2)}`)
   ctx.reply(`Assets to be deposited: ${token} ${amount}`)
   ctx.reply(
     `Total interest fees to receive (${(rate * 100).toFixed(
@@ -364,8 +376,6 @@ export async function handleSetDepositDuration(ctx: ChatContext) {
       },
     ]),
   )
-
-  ctx.session.depositDuration = duration as DepositDuration
 }
 
 export async function handleDepositConfirmAction(ctx: ChatContext) {

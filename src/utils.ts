@@ -1,5 +1,5 @@
 import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
-import { getTokenBalance } from './lib/api'
+import { getDepositTokenBalance, getTokenBalance } from './lib/api'
 import { ChainId, TOKENS } from './lib/constants'
 import { ChatContext } from './types'
 
@@ -20,15 +20,20 @@ export function hexToDecimal(hex: string) {
   return gweiToWei(gwei)
 }
 
-export async function getTokenBalances(
-  address: string,
-  chainId: ChainId,
-  uri: string,
-) {
+export async function getTokenBalances(address: string, chainId: ChainId) {
   return Promise.all(
     TOKENS[chainId].map(async (token) => ({
       token,
-      balance: await getTokenBalance(address, token, chainId, uri),
+      balance: await getTokenBalance(address, token, chainId),
+    })),
+  )
+}
+
+export async function getDepositBalances(address: string, chainId: ChainId) {
+  return Promise.all(
+    TOKENS[chainId].map(async (token) => ({
+      token,
+      balance: await getDepositTokenBalance(address, token, chainId),
     })),
   )
 }

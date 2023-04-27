@@ -8,7 +8,7 @@ dotenv.config()
 
 export const proposalNamespace = {
   eip155: {
-    chains: ['eip155:1'],
+    chains: ['eip155:1', 'eip155:10'],
     methods: [
       'eth_sendTransaction',
       'eth_signTransaction',

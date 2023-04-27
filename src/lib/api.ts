@@ -1,7 +1,15 @@
 import axios, { AxiosInstance } from 'axios'
-import Web3 from 'web3'
+import { ethers } from 'ethers'
 import { hexToDecimal } from '../utils'
-import { ChainId } from './constants'
+import {
+  ABIS,
+  CHAIN_NAMES,
+  ChainId,
+  EXACTLY_DEPOSIT_ABIS,
+  EXACTLY_DEPOSIT_TOKEN_ADDRESSES,
+  RPCS,
+  TOKEN_ADDRESES,
+} from './constants'
 import { Token } from './types'
 
 const ethApi: AxiosInstance = axios.create({
@@ -9,15 +17,6 @@ const ethApi: AxiosInstance = axios.create({
   timeout: 30000, // 30 secs
   headers: {
     Accept: '*/*',
-    'Content-Type': 'application/json',
-  },
-})
-
-const optimismApi: AxiosInstance = axios.create({
-  baseURL: 'https://mainnet.optimism.io',
-  timeout: 30000, // 30 secs
-  headers: {
-    Accept: 'application/json',
     'Content-Type': 'application/json',
   },
 })
@@ -39,49 +38,57 @@ export async function getTokenBalance<C extends ChainId>(
   address: string,
   token: Token<C>,
   chainId: C,
-  uri: string,
 ): Promise<number> {
-  // const abi = ABIS[chainId][token]
+  try {
+    const rpc = RPCS[chainId]
 
-  const api = chainId === ChainId.OPTIMISM ? optimismApi : ethApi
+    const provider = new ethers.providers.JsonRpcProvider(rpc, {
+      chainId,
+      name: CHAIN_NAMES[chainId],
+    })
 
-  const web3 = new Web3('ws://some.local-or-remote.node:8546')
+    const contract = new ethers.Contract(
+      TOKEN_ADDRESES[chainId][token],
+      ABIS[chainId][token],
+      provider,
+    )
+    const balance = await contract.balanceOf(address)
 
-  const balanceOfFunction = web3.eth.abi.encodeFunctionCall(
-    {
-      name: 'balanceOf',
-      type: 'function',
-      inputs: [{ type: 'address', name: 'account' }],
-    },
-    [address],
-  )
+    const balanceNice = balance / 1e6
 
-  const functionSignature =
-    web3.eth.abi.encodeFunctionSignature('balanceOf(address)')
-  const encodedParams = web3.eth.abi.encodeParameters(['address'], [address])
-  const messageToSign =
-    web3.utils.sha3(functionSignature + encodedParams.slice(2)) || ''
+    return balanceNice
+  } catch (err) {
+    console.error(JSON.stringify({ [token]: err }))
+    return 0
+  }
+}
 
-  const signature = await web3.eth.sign(messageToSign, address)
+export async function getDepositTokenBalance<C extends ChainId>(
+  address: string,
+  token: Token<C>,
+  chainId: C,
+): Promise<number> {
+  try {
+    const rpc = RPCS[chainId]
 
-  const data = `${balanceOfFunction.slice(0, 10)}${signature.slice(
-    2,
-  )}${balanceOfFunction.slice(10 + 65)}`
+    const provider = new ethers.providers.JsonRpcProvider(rpc, {
+      chainId,
+      name: CHAIN_NAMES[chainId],
+    })
 
-  const {
-    data: { result: balanceHex },
-  } = await api.post('', {
-    method: 'eth_call',
-    params: [
-      {
-        to: token,
-        data,
-      },
-      'latest',
-    ],
-    id: chainId === ChainId.OPTIMISM ? 43 : 48,
-    jsonrpc: '2.0',
-  })
+    const tokenAddress = EXACTLY_DEPOSIT_TOKEN_ADDRESSES[chainId][token]
+    const tokenAbi = EXACTLY_DEPOSIT_ABIS[chainId][token]
 
-  return hexToDecimal(balanceHex)
+    const contract = new ethers.Contract(tokenAddress, tokenAbi, provider)
+    const accounts = await contract.accounts(address)
+
+    console.log({ [token]: JSON.stringify(accounts) })
+
+    // const balanceNice = balance / 1e6
+
+    return accounts
+  } catch (err) {
+    console.log(err)
+    return 0
+  }
 }
